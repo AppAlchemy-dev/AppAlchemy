@@ -2,6 +2,7 @@
 
 namespace AppAlchemy;
 
+use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -12,8 +13,27 @@ class AppAlchemy
 
     public function __construct(
         private readonly Request $request,
-        private readonly Repository $config
+        private readonly Repository $config,
+        private readonly AuthFactory $auth
     ) {}
+
+    public function getAuthToken(): ?string
+    {
+        return $this->request->bearerToken() ?? $this->request->header('X-AppAlchemy-Auth-Token');
+    }
+
+    public function authenticateToken(string $token): bool
+    {
+        $user = $this->auth->guard('api')->getProvider()->retrieveByCredentials(['api_token' => $token]);
+
+        if ($user) {
+            $this->auth->guard('web')->login($user);
+
+            return true;
+        }
+
+        return false;
+    }
 
     public function isAppAlchemyApp(): bool
     {

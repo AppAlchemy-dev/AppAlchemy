@@ -3,9 +3,11 @@
 namespace AppAlchemy;
 
 use AppAlchemy\Commands\TailwindConfigCommand;
+use AppAlchemy\Http\Middleware\AppAlchemyAuthMiddleware;
 use AppAlchemy\Http\Middleware\DetectAppAlchemy;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Log;
@@ -26,7 +28,19 @@ class AppAlchemyServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        $this->app[Kernel::class]->pushMiddleware(AppAlchemyAuthMiddleware::class);
+
         $this->registerBladeDirectives();
+
+        if (! class_exists('AddApiTokenToUsersTable')) {
+            $this->publishes([
+                __DIR__.'/../database/migrations/add_api_token_to_users_table.php.stub' => database_path('migrations/'.date('Y_m_d_His').'_add_api_token_to_users_table.php'),
+            ], 'appalchemy-migrations');
+        }
+
+        $this->publishes([
+            __DIR__.'/../src/Traits/AppAlchemyUser.php' => app_path('Models/Traits/AppAlchemyUser.php'),
+        ], 'appalchemy-traits');
 
         $this->app->booted(function () {
             $this->registerViewComposer();
@@ -43,8 +57,9 @@ class AppAlchemyServiceProvider extends PackageServiceProvider
     {
         $this->app->bind(AppAlchemy::class, function (Application $app) {
             return new AppAlchemy(
-                $app['request'],
-                $app['config']
+                request: $app['request'],
+                config: $app['config'],
+                auth: $app['auth'],
             );
         });
 
@@ -53,6 +68,14 @@ class AppAlchemyServiceProvider extends PackageServiceProvider
 
     private function registerBladeDirectives(): void
     {
+        Blade::directive('appAlchemyStyles', function () {
+            return "<?php echo app(\AppAlchemy\AppAlchemy::class)->injectCustomStyles(); ?>";
+        });
+
+        Blade::directive('appAlchemyScripts', function () {
+            return "<?php echo app(\AppAlchemy\AppAlchemy::class)->injectJavaScriptBridge(); ?>";
+        });
+
         Blade::directive('alchemy', function () {
             return "<?php if (app('appalchemy')->isAppAlchemyApp()): ?>";
         });

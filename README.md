@@ -29,6 +29,34 @@ return [
 ];
 ```
 
+After installation, make sure to include the AppAlchemy styles and scripts in your main layout file:
+
+```html
+<head>
+    <!-- Other head content -->
+    @appAlchemyStyles
+    @appAlchemyScripts
+</head>
+```
+
+### Authentication Setup
+
+To set up authentication for AppAlchemy:
+
+1. Publish the migration:
+
+```bash
+php artisan vendor:publish --tag="appalchemy-migrations"
+```
+
+2. Run the migration:
+
+```bash
+php artisan migrate
+```
+
+This will add an `api_token` column to your `users` table, which is required for AppAlchemy's authentication system.
+
 ## Usage
 
 ### Detecting AppAlchemy Requests
@@ -55,13 +83,13 @@ protected $middleware = [
 You can use Blade directives to conditionally render content for your mobile app:
 
 ```php
-@alchemyapp
+@alchemy
     This content will only be visible in the AppAlchemy mobile app.
-@endalchemyapp
+@endalchemy
 
-@nonalchemyapp
+@nonalchemy
     This content will be visible everywhere except the AppAlchemy mobile app.
-@endnonalchemyapp
+@endnonalchemy
 ```
 
 ### Styling
@@ -93,11 +121,9 @@ plugins: [
 ],
 ```
 
-This allows you to use the `appalchemy-app:` variant in your Tailwind classes
-
 You can use this variant with any Tailwind utility classes to create mobile-specific styles easily.
 
-## Custom Styling
+### Custom Styling
 
 You can add custom styles that will only be applied in the AppAlchemy app:
 
@@ -107,21 +133,13 @@ use AppAlchemy\Facades\AppAlchemy;
 AppAlchemy::addCustomStyle('.my-class { color: red; }');
 ```
 
-These styles will be automatically injected when the app is detected.
+These styles will be automatically injected when the app is detected via the `@appAlchemyStyles` directive.
 
-## JavaScript Bridge
+### JavaScript Bridge
 
-AppAlchemy provides a JavaScript bridge for communication between your web app and the native app features. To use it, make sure you've included the `appAlchemyBridge` variable in your main layout:
+AppAlchemy provides a JavaScript bridge for communication between your web app and the native app features. The bridge is automatically included when you use the `@appAlchemyScripts` directive in your layout.
 
-```html
-
-    
-    {!! $appAlchemyStyles ?? '' !!}
-    {!! $appAlchemyBridge ?? '' !!}
-
-```
-
-You can then use the bridge in your JavaScript:
+You can use the bridge in your JavaScript as follows:
 
 ```javascript
 // Send a message to the native app
@@ -133,7 +151,19 @@ window.addEventListener('appalchemy', function(event) {
 });
 ```
 
-Make sure to implement the corresponding native code in your iOS and Android apps to handle these messages.
+### Authentication
+
+After setting up authentication:
+
+1. In your native app, after successful login, store the API token and use it for all web view requests.
+
+2. Set the auth token in JavaScript after login:
+
+```javascript
+AppAlchemy.setAuthToken('user-api-token-here');
+```
+
+The AppAlchemy middleware will automatically authenticate requests from your mobile app using this token.
 
 ### Using the AppAlchemy Facade
 

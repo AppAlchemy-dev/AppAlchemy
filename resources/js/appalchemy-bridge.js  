@@ -1,5 +1,43 @@
 window.AppAlchemy = {
+    authToken: null,
+
+    setAuthToken: function(token) {
+        this.authToken = token;
+        localStorage.setItem('appAlchemyAuthToken', token);
+        this.setupAuthInterceptor();
+    },
+
+    getAuthToken: function() {
+        return this.authToken || localStorage.getItem('appAlchemyAuthToken');
+    },
+
+    setupAuthInterceptor: function() {
+        const token = this.getAuthToken();
+        if (!token) return;
+
+        // Intercept XHR requests
+        const originalXHROpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function() {
+            originalXHROpen.apply(this, arguments);
+            this.setRequestHeader('Authorization', 'Bearer ' + token);
+            this.setRequestHeader('X-AppAlchemy-App', 'true');
+        };
+
+        // Intercept Fetch requests
+        const originalFetch = window.fetch;
+        window.fetch = function() {
+            let args = arguments;
+            let options = args[1] || {};
+            if (!options.headers) options.headers = {};
+            options.headers['Authorization'] = 'Bearer ' + token;
+            options.headers['X-AppAlchemy-App'] = 'true';
+            args[1] = options;
+            return originalFetch.apply(this, args);
+        };
+    },
+
     sendToNative: function(action, data) {
+        // Implementation depends on the native app's method of receiving messages
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.appAlchemy) {
             // iOS WKWebView
             window.webkit.messageHandlers.appAlchemy.postMessage({action: action, data: data});
@@ -11,13 +49,12 @@ window.AppAlchemy = {
 
     receiveFromNative: function(action, data) {
         console.log('Received from native:', action, data);
+        if (action === 'setAuthToken') {
+            this.setAuthToken(data);
+        }
         // Dispatch a custom event that can be listened to by the web app
         window.dispatchEvent(new CustomEvent('appalchemy', { detail: { action, data } }));
     }
 };
 
-// Example of listening for messages from the native app
-window.addEventListener('appalchemy', function(event) {
-    console.log('AppAlchemy event:', event.detail.action, event.detail.data);
-    // Handle the event based on the action
-});
+AppAlchemy.setupAuthInterceptor();
