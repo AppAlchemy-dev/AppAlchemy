@@ -1,0 +1,23 @@
+window.AppAlchemy = {
+    sendToNative: function(action, data) {
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.appAlchemy) {
+            // iOS WKWebView
+            window.webkit.messageHandlers.appAlchemy.postMessage({action: action, data: data});
+        } else if (window.AppAlchemyAndroid) {
+            // Android WebView
+            window.AppAlchemyAndroid.receiveMessage(JSON.stringify({action: action, data: data}));
+        }
+    },
+
+    receiveFromNative: function(action, data) {
+        console.log('Received from native:', action, data);
+        // Dispatch a custom event that can be listened to by the web app
+        window.dispatchEvent(new CustomEvent('appalchemy', { detail: { action, data } }));
+    }
+};
+
+// Example of listening for messages from the native app
+window.addEventListener('appalchemy', function(event) {
+    console.log('AppAlchemy event:', event.detail.action, event.detail.data);
+    // Handle the event based on the action
+});

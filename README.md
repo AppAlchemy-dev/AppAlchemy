@@ -1,68 +1,152 @@
-# :package_description
+# AppAlchemy
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3Arun-tests+branch%3Amain)
-[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
-[![Total Downloads](https://img.shields.io/packagist/dt/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-<!--delete-->
----
-This repo can be used to scaffold a Laravel package. Follow these steps to get started:
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/appalchemy-dev/appalchemy.svg?style=flat-square)](https://packagist.org/packages/appalchemy-dev/appalchemy)
+[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/appalchemy-dev/appalchemy/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/appalchemy-dev/appalchemy/actions?query=workflow%3Arun-tests+branch%3Amain)
+[![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/appalchemy-dev/appalchemy/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/appalchemy-dev/appalchemy/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
+[![Total Downloads](https://img.shields.io/packagist/dt/appalchemy-dev/appalchemy.svg?style=flat-square)](https://packagist.org/packages/appalchemy-dev/appalchemy)
 
-1. Press the "Use this template" button at the top of this repo to create a new repo with the contents of this skeleton.
-2. Run "php ./configure.php" to run a script that will replace all placeholders throughout all the files.
-3. Have fun creating your package.
-4. If you need help creating a package, consider picking up our <a href="https://laravelpackage.training">Laravel Package Training</a> video course.
----
-<!--/delete-->
-This is where your description should go. Limit it to a paragraph or two. Consider adding a small example.
-
-## Support us
-
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/:package_name.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/:package_name)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+AppAlchemy is a Laravel package that helps you transform your web applications into mobile-ready experiences. It provides tools and utilities to detect mobile app requests, conditionally render content, and apply mobile-specific styling.
 
 ## Installation
 
 You can install the package via composer:
 
 ```bash
-composer require :vendor_slug/:package_slug
-```
-
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag=":package_slug-migrations"
-php artisan migrate
+composer require appalchemy-dev/appalchemy
 ```
 
 You can publish the config file with:
 
 ```bash
-php artisan vendor:publish --tag=":package_slug-config"
+php artisan vendor:publish --tag="appalchemy-config"
 ```
 
 This is the contents of the published config file:
 
 ```php
 return [
+    'user_agent' => 'AppAlchemy',
 ];
-```
-
-Optionally, you can publish the views using
-
-```bash
-php artisan vendor:publish --tag=":package_slug-views"
 ```
 
 ## Usage
 
+### Detecting AppAlchemy Requests
+
+AppAlchemy provides a middleware to detect requests coming from your mobile app. To use it, add the middleware to your routes or route groups:
+
 ```php
-$variable = new VendorName\Skeleton();
-echo $variable->echoPhrase('Hello, VendorName!');
+Route::middleware('detect-appalchemy')->group(function () {
+    // Your routes here
+});
+```
+
+Or add it to the `$middleware` array in your `app/Http/Kernel.php` to apply it globally:
+
+```php
+protected $middleware = [
+    // Other middleware...
+    \AppAlchemy\Http\Middleware\DetectAppAlchemy::class,
+];
+```
+
+### Conditional Rendering
+
+You can use Blade directives to conditionally render content for your mobile app:
+
+```php
+@alchemyapp
+    This content will only be visible in the AppAlchemy mobile app.
+@endalchemyapp
+
+@nonalchemyapp
+    This content will be visible everywhere except the AppAlchemy mobile app.
+@endnonalchemyapp
+```
+
+### Styling
+
+AppAlchemy automatically adds an `appalchemy-app` class to the `<html>` element when the request comes from your mobile app. You can use this class to apply mobile-specific styles:
+
+```css
+.appalchemy-app .some-element {
+    /* Mobile-specific styles */
+}
+```
+
+#### Tailwind CSS Integration
+
+AppAlchemy provides a custom Tailwind CSS variant for easy mobile-specific styling. You can add it to your `tailwind.config.js` file manually or use our Artisan command:
+
+```bash
+php artisan appalchemy:tailwind-config
+```
+
+This command will automatically add the following plugin to your Tailwind configuration:
+
+```javascript
+plugins: [
+    plugin(function ({addVariant}) {
+        addVariant('appalchemy-app', ['&.appalchemy-app', '.appalchemy-app &']);
+    }),
+    // ... other plugins
+],
+```
+
+This allows you to use the `appalchemy-app:` variant in your Tailwind classes
+
+You can use this variant with any Tailwind utility classes to create mobile-specific styles easily.
+
+## Custom Styling
+
+You can add custom styles that will only be applied in the AppAlchemy app:
+
+```php
+use AppAlchemy\Facades\AppAlchemy;
+
+AppAlchemy::addCustomStyle('.my-class { color: red; }');
+```
+
+These styles will be automatically injected when the app is detected.
+
+## JavaScript Bridge
+
+AppAlchemy provides a JavaScript bridge for communication between your web app and the native app features. To use it, make sure you've included the `appAlchemyBridge` variable in your main layout:
+
+```html
+
+    
+    {!! $appAlchemyStyles ?? '' !!}
+    {!! $appAlchemyBridge ?? '' !!}
+
+```
+
+You can then use the bridge in your JavaScript:
+
+```javascript
+// Send a message to the native app
+AppAlchemy.sendToNative('someAction', { key: 'value' });
+
+// Listen for messages from the native app
+window.addEventListener('appalchemy', function(event) {
+    console.log('Received from native:', event.detail.action, event.detail.data);
+});
+```
+
+Make sure to implement the corresponding native code in your iOS and Android apps to handle these messages.
+
+### Using the AppAlchemy Facade
+
+You can use the AppAlchemy facade to access various helper methods:
+
+```php
+use AppAlchemy\Facades\AppAlchemy;
+
+if (AppAlchemy::isAppAlchemyApp()) {
+    // Do something for AppAlchemy app
+}
+
+$wrappedContent = AppAlchemy::wrapContent($content, 'custom-wrapper-class');
 ```
 
 ## Testing
@@ -85,7 +169,7 @@ Please review [our security policy](../../security/policy) on how to report secu
 
 ## Credits
 
-- [:author_name](https://github.com/:author_username)
+- [Andrew Weir](https://github.com/andruu)
 - [All Contributors](../../contributors)
 
 ## License
