@@ -5,9 +5,11 @@ namespace AppAlchemy;
 use AppAlchemy\Commands\TailwindConfigCommand;
 use AppAlchemy\Http\Middleware\AppAlchemyAuthMiddleware;
 use AppAlchemy\Http\Middleware\DetectAppAlchemy;
+use AppAlchemy\Security\AppAlchemyCsrfTokenProvider;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Log;
@@ -29,6 +31,14 @@ class AppAlchemyServiceProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         $this->app[Kernel::class]->pushMiddleware(AppAlchemyAuthMiddleware::class);
+
+        $this->app->extend(VerifyCsrfToken::class, function ($service, $app) {
+            return new AppAlchemyCsrfTokenProvider(
+                $app[AppAlchemy::class],
+                $app,
+                $app['encrypter']
+            );
+        });
 
         $this->registerBladeDirectives();
 
