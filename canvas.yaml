@@ -1,0 +1,7 @@
+
+preset: laravel
+
+namespace: AppAlchemy
+
+model:
+  namespace: AppAlchemy

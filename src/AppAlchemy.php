@@ -4,8 +4,10 @@ namespace AppAlchemy;
 
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Config\Repository;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use RuntimeException;
 
 class AppAlchemy
 {
@@ -17,22 +19,32 @@ class AppAlchemy
         private readonly AuthFactory $auth
     ) {}
 
-    public function getAuthToken(): ?string
-    {
-        return $this->request->bearerToken() ?? $this->request->header('X-AppAlchemy-Auth-Token');
-    }
-
     public function authenticateToken(string $token): bool
     {
-        $user = $this->auth->guard('api')->getProvider()->retrieveByCredentials(['api_token' => $token]);
+        $provider = $this->auth->createUserProvider($this->config->get('appalchemy.auth.provider', 'users'));
 
-        if ($user) {
-            $this->auth->guard('web')->login($user);
+        if (! $provider) {
+            throw new RuntimeException('User provider not found');
+        }
+
+        $tokenField = $this->config->get('appalchemy.auth.token_field', 'api_token');
+
+        $user = $this->auth->guard('api')->getProvider()->retrieveByCredentials([$tokenField => $token]);
+
+        if ($user instanceof Model) {
+            $this->auth->guard($this->config->get('appalchemy.auth.guard', 'web'))->login($user);
 
             return true;
         }
 
         return false;
+    }
+
+    public function getAuthToken(): ?string
+    {
+        $headerName = $this->config->get('appalchemy.auth.header', 'X-AppAlchemy-Auth-Token');
+
+        return $this->request->header($headerName);
     }
 
     public function isAppAlchemyApp(): bool

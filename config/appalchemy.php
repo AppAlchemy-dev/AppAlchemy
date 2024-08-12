@@ -24,4 +24,26 @@ return [
         'body' => 'appalchemy-body',
         'content' => 'appalchemy-content',
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configure authentication-related settings for AppAlchemy.
+    |
+    */
+    'auth' => [
+        // The authentication guard to use for web sessions
+        'guard' => 'web',
+
+        // The user provider to use for retrieving users
+        'provider' => 'users',
+
+        // The field in the user model that stores the API token
+        'token_field' => 'api_token',
+
+        // The header name for the API token
+        'header' => 'X-AppAlchemy-Auth-Token',
+    ],
 ];
